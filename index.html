@@ -1,0 +1,42 @@
+<html>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://tonejs.github.io/build/Tone.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
+
+<script>
+  const pitch = new Tone.PitchShift();
+  // var distortion = new Tone.Distortion(0.8).toMaster();
+  const reverb = new Tone.JCReverb(0.4)
+  // freeverb.dampening.value = 1000;
+  const synth = new Tone.PolySynth();
+
+  Tone.connectSeries(
+    synth,
+    reverb,
+    Tone.Master
+  );
+
+  const components = {
+    reverb,
+    pitch,
+    synth
+  };
+
+  let i = 0;
+  const chord = ['C4', 'E4', 'G4', 'B4'];
+  new Tone.Loop(time => {
+    i++;
+    i %= chord.length;
+    synth.triggerAttackRelease(chord[i], "2n");
+  }, "4n").start(0);
+  Tone.Transport.start();
+
+
+  const socket = io();
+  socket.on('setParam', event => {
+    console.log('setParam', event);
+    _.set(components, event.key, event.value);
+  });
+</script>
+
+</html>
