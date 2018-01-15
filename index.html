@@ -1,42 +1,77 @@
 <html>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://tonejs.github.io/build/Tone.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
 
 <script>
-  const pitch = new Tone.PitchShift();
-  // var distortion = new Tone.Distortion(0.8).toMaster();
-  const reverb = new Tone.JCReverb(0.4)
-  // freeverb.dampening.value = 1000;
+  // const distortion = new Tone.Distortion();
+  const reverb = new Tone.JCReverb()
+  const filter = new Tone.Filter();
   const synth = new Tone.PolySynth();
 
   Tone.connectSeries(
     synth,
+    // distortion,
+    filter,
     reverb,
     Tone.Master
   );
 
-  const components = {
-    reverb,
-    pitch,
-    synth
-  };
-
-  let i = 0;
-  const chord = ['C4', 'E4', 'G4', 'B4'];
-  new Tone.Loop(time => {
-    i++;
-    i %= chord.length;
-    synth.triggerAttackRelease(chord[i], "2n");
-  }, "4n").start(0);
-  Tone.Transport.start();
+  // let i = 0;
+  // const chord = ['C4', 'E4', 'G4', 'B4'];
+  // new Tone.Loop(time => {
+  //   i++;
+  //   i %= chord.length;
+  //   synth.triggerAttackRelease(chord[i], "2n");
+  // }, "4n").start(0);
+  // Tone.Transport.start();
 
 
   const socket = io();
-  socket.on('setParam', event => {
-    console.log('setParam', event);
-    _.set(components, event.key, event.value);
+  socket.on('signal', ({ key, value }) => {
+    console.log(key, value);
+    switch (key) {
+
+      case 'joystick_x':
+        if (value > 0.5) {
+          filter.type = 'highpass';
+          value = (value - 0.5) * 2;
+        } else {
+          filter.type = 'lowpass';
+          value = value * 2;
+        }
+        filter.frequency.value = value * 4200 + 200;
+        break;
+
+      case 'joystick_y':
+        // distortion.distortion = Math.abs(value - 0.5) / 2
+        break;
+
+      case 'button_8':
+        pressButton('C4', value);
+        break;
+      case 'button_9':
+        pressButton('D4', value);
+        break;
+      case 'button_10':
+        pressButton('E4', value);
+        break;
+      case 'button_11':
+        pressButton('F4', value);
+        break;
+      case 'button_12':
+        pressButton('G4', value);
+        break;
+
+    }
   });
+
+  function pressButton(note, value) {
+    if (value) {
+      synth.triggerRelease(note);
+    } else {
+      synth.triggerAttack(note);
+    }
+  }
 </script>
 
 </html>

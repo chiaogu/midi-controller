@@ -8,25 +8,35 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-const board = new J5.Board({ repl: false });
+const board = new J5.Board();
 board.on("ready", () => {
-  const toPercent = voltage => Math.round(voltage / 1024 * 100) / 100;
-
-  board.analogRead(0, voltage => {
-    const p = toPercent(voltage);
-    const freq = 400 * p + 40;
-
-    setParam('pitch.windowSize', p * 0.1);
+  [8, 9, 10, 11, 12].forEach(i => {
+    board.pinMode(i, J5.Pin.INPUT);
+    board.digitalWrite(i, 1);
+    board.digitalRead(i, digitalReadHandler(`button_${i}`))
   });
-  board.analogRead(1, voltage => {
-  });
+
+  // board.analogRead(0, analogReadHandler('joystick_x'));
+  // board.analogRead(1, analogReadHandler('joystick_y'));
 });
 
+function analogReadHandler(key) {
+  return voltage => {
+    sendSignal(key, Math.round(voltage / 1024 * 100) / 100);
+  }
+}
+
+function digitalReadHandler(key) {
+  return value => {
+    sendSignal(key, value);
+  }
+}
+
 const cache = {};
-function setParam(key, value) {
+function sendSignal(key, value) {
   if (cache[key] === value) {
     return;
   }
-  io.emit('setParam', { key, value });
+  io.emit('signal', { key, value });
   cache[key] = value;
 }
