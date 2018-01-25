@@ -16,20 +16,24 @@
     Tone.Master
   );
 
-  // let i = 0;
-  // const chord = ['C4', 'E4', 'G4', 'B4'];
-  // new Tone.Loop(time => {
-  //   i++;
-  //   i %= chord.length;
-  //   synth.triggerAttackRelease(chord[i], "2n");
-  // }, "4n").start(0);
-  // Tone.Transport.start();
+  let i = 0;
+  const chord = ['C4', 'E4', 'G4', 'B4'];
+  new Tone.Loop(time => {
+    i++;
+    i %= chord.length;
+    synth.triggerAttackRelease(chord[i], "2n");
+  }, "4n").start(0);
+  Tone.Transport.start();
 
 
   const socket = io();
   socket.on('signal', ({ key, value }) => {
     console.log(key, value);
     switch (key) {
+
+      case 'knob':
+        reverb.roomSize.value += 0.1 * value;
+        break;
 
       case 'joystick_x':
         if (value > 0.5) {
