@@ -3,39 +3,53 @@
 <script src="https://tonejs.github.io/build/Tone.min.js"></script>
 
 <script>
-  // const distortion = new Tone.Distortion();
+  const synth = new Tone.PolySynth();
   const reverb = new Tone.JCReverb()
   const filter = new Tone.Filter();
-  const synth = new Tone.PolySynth();
+  const pitchShift = new Tone.PitchShift();
 
   Tone.connectSeries(
     synth,
-    // distortion,
-    filter,
     reverb,
+    filter,
+    pitchShift,
     Tone.Master
   );
-
-  let i = 0;
-  const chord = ['C4', 'E4', 'G4', 'B4'];
-  new Tone.Loop(time => {
-    i++;
-    i %= chord.length;
-    synth.triggerAttackRelease(chord[i], "2n");
-  }, "4n").start(0);
-  Tone.Transport.start();
-
 
   const socket = io();
   socket.on('signal', ({ key, value }) => {
     console.log(key, value);
+
     switch (key) {
+      case 'button_0':
+        pressButton('C4', value);
+        break;
+
+      case 'button_1':
+        pressButton('D4', value);
+        break;
+
+      case 'button_2':
+        pressButton('E4', value);
+        break;
+
+      case 'button_3':
+        pressButton('F4', value);
+        break;
+
+      case 'button_4':
+        pressButton("G4", value);
+        break;
 
       case 'knob':
         reverb.roomSize.value += 0.1 * value;
         break;
 
       case 'joystick_x':
+        pitchShift.pitch = value * 2;
+        break;
+
+      case 'slider':
         if (value > 0.5) {
           filter.type = 'highpass';
           value = (value - 0.5) * 2;
@@ -45,27 +59,6 @@
         }
         filter.frequency.value = value * 4200 + 200;
         break;
-
-      case 'joystick_y':
-        // distortion.distortion = Math.abs(value - 0.5) / 2
-        break;
-
-      case 'button_8':
-        pressButton('C4', value);
-        break;
-      case 'button_9':
-        pressButton('D4', value);
-        break;
-      case 'button_10':
-        pressButton('E4', value);
-        break;
-      case 'button_11':
-        pressButton('F4', value);
-        break;
-      case 'button_12':
-        pressButton('G4', value);
-        break;
-
     }
   });
 
@@ -75,6 +68,17 @@
     } else {
       synth.triggerAttack(note);
     }
+  }
+
+  function autoPlay() {
+    let i = 0;
+    const chord = ['C4', 'E4', 'G4', 'B4'];
+    new Tone.Loop(time => {
+      i++;
+      i %= chord.length;
+      synth.triggerAttackRelease(chord[i], "2n");
+    }, "4n").start(0);
+    Tone.Transport.start();
   }
 </script>
 

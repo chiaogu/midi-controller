@@ -10,59 +10,57 @@ app.get('/', (req, res) => {
 
 const board = new J5.Board();
 board.on("ready", () => {
-  // [8, 9, 10, 11, 12].forEach(i => {
-  //   board.pinMode(i, J5.Pin.INPUT);
-  //   board.digitalWrite(i, 1);
-  //   board.digitalRead(i, digitalReadHandler(`button_${i}`))
-  // });
-
-  // board.analogRead(0, analogReadHandler('joystick_x'));
-  // board.analogRead(1, analogReadHandler('joystick_y'));
-
+  setUpButtons();
+  setUpJoystick();
+  setUpSlider();
   setUpKnob();
 });
+
+function setUpButtons() {
+  [4, 5, 6, 7, 8].forEach((pin, i) => {
+    board.pinMode(pin, J5.Pin.INPUT);
+    board.digitalWrite(pin, 1);
+    board.digitalRead(pin, value => sendSignal(`button_${i}`, value));
+  });
+}
+
+function setUpJoystick() {
+  const calc = voltage => (Math.round(voltage / 1024 * 100) / 100 - 0.5) * -2;
+  board.analogRead(6, value => sendSignal('joystick_y', calc(value)));
+  board.analogRead(5, value => sendSignal('joystick_x', calc(value)));
+}
+
+function setUpSlider() {
+  const calc = voltage => Math.round(voltage / 1024 * 100) / 100;
+  board.analogRead(7, value => sendSignal('slider', calc(value)));
+}
 
 function setUpKnob() {
   const values = [1, 1];
   [2, 3].forEach((pin, i) => {
     board.pinMode(pin, J5.Pin.INPUT);
     board.digitalRead(pin, value => {
-      if(values[i] === value){
+      if (values[i] === value) {
         return;
       }
       const preState = values.toString();
       values[i] = value;
       const state = values.toString();
 
-      if(state === '1,1'){
-        if(preState === '0,1'){
-          sendSignal('knob', 1, false);
-        }else if(preState === '1,0') {
-          sendSignal('knob', -1, false);
+      if (state === '1,1') {
+        if (preState === '0,1') {
+          sendSignal('knob', 1, true);
+        } else if (preState === '1,0') {
+          sendSignal('knob', -1, true);
         }
       }
     });
   });
 }
 
-function analogReadHandler(key) {
-  return voltage => {
-    sendSignal(key, Math.round(voltage / 1024 * 100) / 100);
-  }
-}
-
-function digitalReadHandler(key) {
-  return value => {
-    sendSignal(key, value);
-  }
-}
-
 const cache = {};
-function sendSignal(key, value, needCache) {
-  if(needCache === undefined){
-    needCache = true;
-  }
-  if (needCache && cache[key] === value) {
+function sendSignal(key, value, force) {
+  if (!force && cache[key] === value) {
     return;
   }
   io.emit('signal', { key, value });
